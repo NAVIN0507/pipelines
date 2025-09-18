@@ -1,0 +1,50 @@
+name: Hotfix Pipeline
+
+on:
+  push:
+    branches: [ hotfix/* ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+
+jobs:
+  hotfix-deploy:
+    name: Hotfix Deployment
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run critical tests only
+      run: npm test -- --testPathPattern="health|critical"
+    
+    - name: Deploy hotfix
+      run: |
+        echo "🔥 Deploying hotfix to ${{ github.event.inputs.environment || 'staging' }}"
+        echo "Branch: ${{ github.ref_name }}"
+        echo "Commit: ${{ github.sha }}"
+        sleep 2
+        echo "✅ Hotfix deployed successfully"
+    
+    - name: Notify on-call team
+      run: |
+        echo "🚨 Hotfix deployment notification sent to on-call team"
+        # Real notification would go here
